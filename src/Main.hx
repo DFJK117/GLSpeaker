@@ -26,13 +26,16 @@ class Main extends Application {
 	}
 
 	override public function onWindowCreate():Void {
+		// 窗口/事件先就位；资源初始化等 onPreloadComplete（否则 default 库未加载会报错）
 		state = new VizState();
 		engine = new AudioEngine(state);
+		lastStamp = haxe.Timer.stamp();
+		window.onRender.add(onRenderFrame);
+	}
+
+	override public function onPreloadComplete():Void {
 		renderer = new GLRenderer(state);
 		panel = new Panel(state, engine);
-		lastStamp = haxe.Timer.stamp();
-
-		window.onRender.add(onRenderFrame);
 		layoutPanel();
 
 		#if sys
@@ -60,6 +63,7 @@ class Main extends Application {
 
 	// ———————— 主循环 ————————
 	function onRenderFrame(context:lime.graphics.RenderContext):Void {
+		if (renderer == null || panel == null) return; // 资源尚未预加载完成
 		var now = haxe.Timer.stamp();
 		var dt = now - lastStamp;
 		lastStamp = now;
