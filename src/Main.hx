@@ -40,9 +40,13 @@ class Main extends Application {
 	override public function onPreloadComplete():Void {
 		try {
 		gl.SLog.log('preloadComplete 开始');
+		gl.SLog.log('A1: new GLRenderer 前');
 		renderer = new GLRenderer(state);
+		gl.SLog.log('A2: GLRenderer OK');
 		panel = new Panel(state, engine);
+		gl.SLog.log('A3: Panel OK');
 		layoutPanel();
+		gl.SLog.log('A4: layoutPanel OK');
 
 		#if sys
 		// ① 命令行参数（把音乐文件拖到 exe 上）

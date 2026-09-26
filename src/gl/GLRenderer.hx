@@ -88,9 +88,13 @@ class GLRenderer {
 
 	public function new(state:VizState) {
 		this.state = state;
+		SLog.log('R1: new Geo 前');
 		geo = new Geo();
+		SLog.log('R2: new FontAtlas 前');
 		font = new FontAtlas();       // 只读资产数据，不碰 GL
+		SLog.log('R3: Assets.getImage 前');
 		bgImage = Assets.getImage("assets/back.png");
+		SLog.log('R4: GLRenderer 构造完成');
 		// GL 资源延后到首帧渲染时创建（那时 GL 上下文才是当前的）
 	}
 

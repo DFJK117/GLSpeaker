@@ -18,7 +18,9 @@ class FontAtlas {
 	var img:Image;
 
 	public function new() {
+		gl.SLog.log('F1: getImage(atlas) 前');
 		img = lime.utils.Assets.getImage("assets/font_atlas.png");
+		gl.SLog.log('F2: getText(json) 前');
 		if (img != null) {
 			imgW = img.width;
 			imgH = img.height;
