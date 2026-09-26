@@ -72,9 +72,15 @@ jobs:
           haxelib install lime 7.9.0 --always
           haxelib install hxcpp 4.2.1 --always
 
-      - name: Ensure NDK
+      - name: Ensure NDK (needs JDK 17 for sdkmanager)
         run: |
           echo "y" | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --install "ndk;21.4.7075529" > /dev/null
+
+      - name: Switch to JDK 11 (lime gradle needs it)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
 
       - name: Build APK
         run: haxelib run lime build android -release
