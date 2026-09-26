@@ -110,6 +110,8 @@ class GLRenderer {
 		geo = new Geo();
 		font = new FontAtlas();       // 只读资产数据，不碰 GL
 		bgImage = Assets.getImage("assets/back.png");
+		if (bgImage == null) bgImage = Assets.getImage("back.png");
+		if (bgImage == null) SLog.log('back.png 双路径都 null!');
 		// GL 资源延后到首帧渲染时创建（那时 GL 上下文才是当前的）
 	}
 
@@ -227,7 +229,13 @@ class GLRenderer {
 			ready = true;
 		}
 		time += dt;
+		SLog.log('draw#' + frame + ': buildScene 前');
 		buildScene(w, h);
+		SLog.log('draw#' + frame + ': buildScene 后');
+		if (frame <= 2) {
+			gl.viewport(0, 0, 1, 1);
+			SLog.log('draw#' + frame + ': viewport 探针 err=' + gl.getError());
+		}
 
 		var cx = w * 0.5, cy = h * 0.5;
 		var jelly = 1.0 + state.rmsSmooth * 0.5 * Math.min(2.0, state.gain);

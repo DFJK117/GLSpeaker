@@ -19,6 +19,12 @@ class FontAtlas {
 
 	public function new() {
 		img = lime.utils.Assets.getImage("assets/font_atlas.png");
+		if (img == null) img = lime.utils.Assets.getImage("font_atlas.png");
+		if (img == null) {
+			var list = lime.utils.Assets.list();
+			gl.SLog.log('F-null! atlas 未找到, assets数=' + (list != null ? list.length : -1));
+			if (list != null) { var n = 0; for (a in list) { if (n < 12) { gl.SLog.log('  asset: ' + a); n++; } } }
+		}
 		if (img != null) {
 			imgW = img.width;
 			imgH = img.height;
