@@ -24,12 +24,15 @@ class Main extends Application {
 
 	public function new() {
 		super();
+		gl.SLog.log('Main.new');
 	}
 
 	override public function onWindowCreate():Void {
-		// 窗口/事件先就位；资源初始化等 onPreloadComplete（否则 default 库未加载会报错）
+		gl.SLog.log('onWindowCreate 开始');
 		state = new VizState();
+		gl.SLog.log('onWindowCreate: state OK');
 		engine = new AudioEngine(state);
+		gl.SLog.log('onWindowCreate: engine OK');
 		lastStamp = haxe.Timer.stamp();
 		window.onRender.add(onRenderFrame);
 	}
@@ -111,12 +114,21 @@ class Main extends Application {
 		renderer.draw(window.width, window.height, dt);
 	}
 
-	// ———————— 输入（Application 虚方法覆写）————————
-	override public function onMouseDown(x:Float, y:Float, _:MouseButton):Void panel.mouseDown(x, y);
-	override public function onMouseMove(x:Float, y:Float):Void panel.mouseMove(x, y);
-	override public function onMouseUp(x:Float, y:Float, _:MouseButton):Void panel.mouseUp(x, y);
+	// ———————— 输入（Application 虚方法覆写；panel 未创建时必须跳过，否则原生段错误）————————
+	override public function onMouseDown(x:Float, y:Float, _:MouseButton):Void {
+		if (panel != null) panel.mouseDown(x, y);
+	}
+
+	override public function onMouseMove(x:Float, y:Float):Void {
+		if (panel != null) panel.mouseMove(x, y);
+	}
+
+	override public function onMouseUp(x:Float, y:Float, _:MouseButton):Void {
+		if (panel != null) panel.mouseUp(x, y);
+	}
 
 	override public function onKeyDown(code:KeyCode, mod:KeyModifier):Void {
+		if (panel == null) return;
 		switch (code) {
 			case KeyCode.SPACE:
 				if (state.playing) engine.pause(); else engine.play();
