@@ -1,6 +1,7 @@
 import audio.AudioEngine;
 import gl.GLRenderer;
 import lime.app.Application;
+import StringTools;
 import lime.ui.KeyCode;
 import lime.ui.KeyModifier;
 import lime.ui.MouseButton;
@@ -39,8 +40,8 @@ class Main extends Application {
 		var args = Sys.args();
 		for (a in args) {
 			var low = a.toLowerCase();
-			if (low.endsWith(".mp3") || low.endsWith(".ogg") || low.endsWith(".wav")
-				|| low.endsWith(".flac") || low.endsWith(".m4a")) {
+			if (StringTools.endsWith(low, ".mp3") || StringTools.endsWith(low, ".ogg") || StringTools.endsWith(low, ".wav")
+				|| StringTools.endsWith(low, ".flac") || StringTools.endsWith(low, ".m4a")) {
 				engine.loadFile(a);
 				break;
 			}

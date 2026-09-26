@@ -3,6 +3,7 @@ package audio;
 import dsp.Compressor;
 import dsp.FFT;
 import haxe.io.Float32Array;
+import StringTools;
 import lime.media.AudioBuffer;
 import lime.media.AudioSource;
 
@@ -119,7 +120,7 @@ class AudioEngine {
 		try {
 			for (f in sys.FileSystem.readDirectory(dir)) {
 				var low = f.toLowerCase();
-				if (low.endsWith(".mp3") || low.endsWith(".ogg") || low.endsWith(".wav") || low.endsWith(".flac")) {
+				if (StringTools.endsWith(low, ".mp3") || StringTools.endsWith(low, ".ogg") || StringTools.endsWith(low, ".wav") || StringTools.endsWith(low, ".flac")) {
 					playlist.push(dir + "/" + f);
 				}
 			}
@@ -192,8 +193,11 @@ class AudioEngine {
 	}
 
 	function enqueueAnalyze():Void {
+		// 手工拷贝（cpp 目标 Float32Array 无 copy()）
+		var c = new Float32Array(chunk.length);
+		for (i in 0...chunk.length) c[i] = chunk[i];
 		mutex.acquire();
-		queue.push(chunk.copy());
+		queue.push(c);
 		if (queue.length > 3) queue.shift();
 		mutex.release();
 	}
