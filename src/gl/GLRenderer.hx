@@ -109,9 +109,9 @@ class GLRenderer {
 		this.state = state;
 		geo = new Geo();
 		font = new FontAtlas();       // 只读资产数据，不碰 GL
-		bgImage = Assets.getImage("assets/back.png");
-		if (bgImage == null) bgImage = Assets.getImage("back.png");
-		if (bgImage == null) SLog.log('back.png 双路径都 null!');
+		bgImage = Image.fromFile("assets/back.png");
+		if (bgImage == null) { SLog.log('back.png fromFile null!'); }
+		else { SLog.log('back.png fromFile OK ' + bgImage.width + 'x' + bgImage.height + ' data=' + (bgImage.data != null)); }
 		// GL 资源延后到首帧渲染时创建（那时 GL 上下文才是当前的）
 	}
 
