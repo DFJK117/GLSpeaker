@@ -49,18 +49,25 @@ class Main extends Application {
 		gl.SLog.log('A4: layoutPanel OK');
 
 		#if sys
-		// ① 命令行参数（把音乐文件拖到 exe 上）
-		var args = Sys.args();
-		for (a in args) {
-			var low = a.toLowerCase();
-			if (StringTools.endsWith(low, ".mp3") || StringTools.endsWith(low, ".ogg") || StringTools.endsWith(low, ".wav")
-				|| StringTools.endsWith(low, ".flac") || StringTools.endsWith(low, ".m4a")) {
-				engine.loadFile(a);
-				break;
+		gl.SLog.log('B1: Sys.args 前');
+		try {
+			var args:Array<String> = Sys.args();
+			gl.SLog.log('B2: args=' + args.length);
+			for (a in args) {
+				var low = a.toLowerCase();
+				if (StringTools.endsWith(low, ".mp3") || StringTools.endsWith(low, ".ogg") || StringTools.endsWith(low, ".wav")
+					|| StringTools.endsWith(low, ".flac") || StringTools.endsWith(low, ".m4a")) {
+					gl.SLog.log('B2a: loadFile ' + a);
+					engine.loadFile(a);
+					break;
+				}
 			}
-		}
-		// ② exe 同级 music/ 文件夹
-		if (engine.playlist.length == 0 && engine.playlistIndex < 0) engine.scanMusicFolder();
+		} catch (e:Dynamic) { gl.SLog.log('B-err args: ' + Std.string(e)); }
+		gl.SLog.log('B3: scan 前');
+		try {
+			if (engine.playlist.length == 0 && engine.playlistIndex < 0) engine.scanMusicFolder();
+			gl.SLog.log('B4: scan 完成 playlist=' + engine.playlist.length);
+		} catch (e:Dynamic) { gl.SLog.log('B-err scan: ' + Std.string(e)); }
 		#end
 		gl.SLog.log('preloadComplete 完成');
 		} catch (e:Dynamic) {

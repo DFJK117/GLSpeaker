@@ -120,6 +120,7 @@ class AudioEngine {
 		#else
 		var dir = Sys.getCwd() + "music";
 		#end
+		gl.SLog.log('S1: scan dir=' + dir);
 		playlist = [];
 		try {
 			for (f in sys.FileSystem.readDirectory(dir)) {
@@ -129,10 +130,13 @@ class AudioEngine {
 				}
 			}
 		} catch (e:Dynamic) {}
+		gl.SLog.log('S2: scan 完成 n=' + playlist.length);
 		playlist.sort(function(a, b) return Reflect.compare(a, b));
 		if (playlist.length > 0) {
 			playlistIndex = 0;
+			gl.SLog.log('S3: loadFile ' + playlist[0]);
 			loadFile(playlist[0]);
+			gl.SLog.log('S4: loadFile 完成');
 		}
 	}
 
