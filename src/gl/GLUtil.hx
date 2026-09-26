@@ -50,8 +50,19 @@ class GLUtil {
 		#end
 	}
 
-	/** 跨目标 texImage2D（上传 lime Image 的像素） */
+	/** 跨目标 texImage2D：native 走 Bytes 通道（UInt8Array 的 DataPointer 编组在原生端段错误） */
 	public static function uploadTexture(gl:Dynamic, target:Int, img:Dynamic):Void {
+		#if js
 		gl.texImage2D(target, 0, GL.RGBA, img.width, img.height, 0, GL.RGBA, GL.UNSIGNED_BYTE, img.data);
+		#else
+		var u8:Dynamic = img.data;
+		if (u8 == null) { SLog.log('uploadTexture: img.data 为 null!'); return; }
+		var len:Int = u8.length;
+		SLog.log('uploadTexture: len=' + len + ' ' + img.width + 'x' + img.height);
+		var bytes = haxe.io.Bytes.alloc(len);
+		for (i in 0...len) bytes.set(i, u8[i]);
+		gl.texImage2D(target, 0, GL.RGBA, img.width, img.height, 0, GL.RGBA, GL.UNSIGNED_BYTE, bytes);
+		SLog.log('uploadTexture: 完成 err=' + gl.getError());
+		#end
 	}
 }
