@@ -41,28 +41,21 @@ class GLUtil {
 		return program;
 	}
 
-	/** 跨目标 bufferData：WebGL 3 参，桌面 GL 4 参（lime_webgl 宏不可靠，用 js 判定） */
-	public static function uploadBuffer(gl:Dynamic, target:Int, data:Dynamic, byteSize:Int):Void {
+	/** 跨目标 bufferData：一律走 haxe.io.Bytes（lime 类型数组的 DataPointer 编组在原生端不可靠） */
+	public static function uploadBuffer(gl:Dynamic, target:Int, bytes:haxe.io.Bytes, byteSize:Int):Void {
 		#if js
-		gl.bufferData(target, data, GL.DYNAMIC_DRAW);
+		untyped gl.bufferData(target, bytes, GL.DYNAMIC_DRAW);
 		#else
-		gl.bufferData(target, byteSize, data, GL.DYNAMIC_DRAW);
+		gl.bufferData(target, byteSize, bytes, GL.DYNAMIC_DRAW);
 		#end
 	}
 
-	/** 跨目标 texImage2D：native 走 Bytes 通道（UInt8Array 的 DataPointer 编组在原生端段错误） */
-	public static function uploadTexture(gl:Dynamic, target:Int, img:Dynamic):Void {
+	/** 跨目标 texImage2D：native 传像素 Bytes */
+	public static function uploadTexture(gl:Dynamic, target:Int, w:Int, h:Int, pixels:haxe.io.Bytes):Void {
 		#if js
-		gl.texImage2D(target, 0, GL.RGBA, img.width, img.height, 0, GL.RGBA, GL.UNSIGNED_BYTE, img.data);
+		untyped gl.texImage2D(target, 0, GL.RGBA, w, h, 0, GL.RGBA, GL.UNSIGNED_BYTE, pixels.getData());
 		#else
-		var u8:Dynamic = img.data;
-		if (u8 == null) { SLog.log('uploadTexture: img.data 为 null!'); return; }
-		var len:Int = u8.length;
-		SLog.log('uploadTexture: len=' + len + ' ' + img.width + 'x' + img.height);
-		var bytes = haxe.io.Bytes.alloc(len);
-		for (i in 0...len) bytes.set(i, u8[i]);
-		gl.texImage2D(target, 0, GL.RGBA, img.width, img.height, 0, GL.RGBA, GL.UNSIGNED_BYTE, bytes);
-		SLog.log('uploadTexture: 完成 err=' + gl.getError());
+		gl.texImage2D(target, 0, GL.RGBA, w, h, 0, GL.RGBA, GL.UNSIGNED_BYTE, pixels);
 		#end
 	}
 }

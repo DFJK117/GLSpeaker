@@ -99,6 +99,9 @@ class GLRenderer {
 
 	var bgTex:Dynamic;
 	var bgImage:Image;
+	var bgPixels:haxe.io.Bytes;
+	var bgW:Int = 1;
+	var bgH:Int = 1;
 	var ready:Bool = false;
 	var frame:Int = 0;
 
@@ -111,7 +114,15 @@ class GLRenderer {
 		font = new FontAtlas();       // 只读资产数据，不碰 GL
 		bgImage = Image.fromFile("assets/back.png");
 		if (bgImage == null) { SLog.log('back.png fromFile null!'); }
-		else { SLog.log('back.png fromFile OK ' + bgImage.width + 'x' + bgImage.height + ' data=' + (bgImage.data != null)); }
+		else {
+			SLog.log('back.png fromFile OK ' + bgImage.width + 'x' + bgImage.height);
+			bgW = bgImage.width; bgH = bgImage.height;
+			var u8:Dynamic = bgImage.data;
+			var len:Int = bgW * bgH * 4;
+			bgPixels = haxe.io.Bytes.alloc(len);
+			for (i in 0...len) bgPixels.set(i, u8[i]);
+			SLog.log('back.png 像素快照完成 ' + len);
+		}
 		// GL 资源延后到首帧渲染时创建（那时 GL 上下文才是当前的）
 	}
 
@@ -144,17 +155,17 @@ class GLRenderer {
 	}
 
 	function initTextures():Void {
-		var img:Image = bgImage;
-		if (img != null) {
+		if (bgPixels != null) {
 			bgTex = gl.createTexture();
 			gl.bindTexture(gl.TEXTURE_2D, bgTex);
-			GLUtil.uploadTexture(gl, gl.TEXTURE_2D, img);
-			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
-			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
-			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
-			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
+			GLUtil.uploadTexture(gl, gl.TEXTURE_2D, bgW, bgH, bgPixels);
+			SLog.log('bgTex err=' + gl.getError());
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 		} else {
-			trace('背景图 assets/back.png 缺失');
+			SLog.log('背景图缺失，纯色背景');
 		}
 	}
 
@@ -231,6 +242,7 @@ class GLRenderer {
 		time += dt;
 		SLog.log('draw#' + frame + ': buildScene 前');
 		buildScene(w, h);
+		geo.syncBytes();
 		SLog.log('draw#' + frame + ': buildScene 后');
 		if (frame <= 2) {
 			gl.viewport(0, 0, 1, 1);
@@ -265,7 +277,7 @@ class GLRenderer {
 		if (font.textureId != null) gl.bindTexture(GL.TEXTURE_2D, font.textureId);
 		gl.bindBuffer(GL.ARRAY_BUFFER, vboTex);
 		if (geo.texCount > 0) {
-			GLUtil.uploadBuffer(gl, GL.ARRAY_BUFFER, geo.tex, geo.texCount * 4);
+			GLUtil.uploadBuffer(gl, GL.ARRAY_BUFFER, geo.texBytes, geo.texCount * 4);
 			if (frame <= 2) SLog.log('texUpload后 err=' + gl.getError() + ' bytes=' + gl.getBufferParameter(GL.ARRAY_BUFFER, gl.BUFFER_SIZE));
 		}
 		gl.enableVertexAttribArray(tAPos);
@@ -289,7 +301,7 @@ class GLRenderer {
 		gl.uniform2f(fURes, w, h);
 		gl.bindBuffer(GL.ARRAY_BUFFER, vboFlat);
 		if (geo.flatCount > 0) {
-			GLUtil.uploadBuffer(gl, GL.ARRAY_BUFFER, geo.flat, geo.flatCount * 4);
+			GLUtil.uploadBuffer(gl, GL.ARRAY_BUFFER, geo.flatBytes, geo.flatCount * 4);
 			if (frame <= 2) SLog.log('flatUpload后 err=' + gl.getError() + ' bytes=' + gl.getBufferParameter(GL.ARRAY_BUFFER, gl.BUFFER_SIZE));
 		}
 		gl.enableVertexAttribArray(fAPos);

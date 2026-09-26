@@ -93,6 +93,17 @@ class Geo {
 		for (c in corners) fFan(c[0], c[1], rad, seg, r, g, b, a);
 	}
 
+	// ———— Bytes 镜像（原生上传用）—————
+	public var flatBytes:haxe.io.Bytes;
+	public var texBytes:haxe.io.Bytes;
+
+	public function syncBytes():Void {
+		if (flatBytes == null) flatBytes = haxe.io.Bytes.alloc(flat.length * 4);
+		for (i in 0...flatCount) flatBytes.setFloat(i * 4, flat[i]);
+		if (texBytes == null) texBytes = haxe.io.Bytes.alloc(tex.length * 4);
+		for (i in 0...texCount) texBytes.setFloat(i * 4, tex[i]);
+	}
+
 	// ———————— textured（文字）———————
 	public inline function tv(x:Float, y:Float, u:Float, v:Float, r:Float, g:Float, b:Float, a:Float):Void {
 		var o = texCount;

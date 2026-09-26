@@ -5,6 +5,7 @@ import lime.graphics.Image;
 
 /**
  * 字体图集：tools/gen_font_atlas.py 预生成的 PNG + JSON。
+ * 构造时从磁盘解码并立刻快照像素到自有 Bytes（lime Image 数据在原生端会被动失效）。
  * 纹理在首帧渲染时创建（GL 上下文激活后），drawText 把字符作为 UV quad 推入 Geo.tex。
  */
 class FontAtlas {
@@ -15,18 +16,28 @@ class FontAtlas {
 
 	var meta:Dynamic;
 	var size:Float;
-	var img:Image;
+	var pixels:haxe.io.Bytes;
 
 	public function new() {
-		img = Image.fromFile("assets/font_atlas.png");
-		if (img == null) { SLog.log('font_atlas fromFile null!'); }
-		else { SLog.log('font_atlas fromFile OK ' + img.width + 'x' + img.height + ' data=' + (img.data != null)); }
-		if (img != null) {
-			imgW = img.width;
-			imgH = img.height;
-		} else {
-			trace('font_atlas.png 缺失');
+		var img = Image.fromFile("assets/font_atlas.png");
+		if (img == null) {
+			SLog.log('font_atlas fromFile null!');
+			return;
 		}
+		imgW = img.width;
+		imgH = img.height;
+		SLog.log('font_atlas fromFile OK ' + imgW + 'x' + imgH);
+		// 像素快照（RGBA32）
+		var u8:Dynamic = img.data;
+		if (u8 == null) {
+			SLog.log('font_atlas data 为 null!');
+			return;
+		}
+		var len:Int = Std.int(imgW) * Std.int(imgH) * 4;
+		pixels = haxe.io.Bytes.alloc(len);
+		for (i in 0...len) pixels.set(i, u8[i]);
+		SLog.log('font_atlas 像素快照完成 ' + len);
+		// 字形元数据
 		var jsonStr:String = lime.utils.Assets.getText("assets/font_atlas.json");
 		meta = Json.parse(jsonStr);
 		size = meta.size;
@@ -34,16 +45,15 @@ class FontAtlas {
 
 	/** 首帧渲染时调用（GL 上下文已激活） */
 	public function ensureTexture(gl:Dynamic):Void {
-		if (textureId != null || img == null) return;
+		if (textureId != null || pixels == null) return;
 		textureId = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, textureId);
-		GLUtil.uploadTexture(gl, gl.TEXTURE_2D, img);
-		gl.SLog.log('atlasTex上传后 err=' + gl.getError());
+		GLUtil.uploadTexture(gl, gl.TEXTURE_2D, Std.int(imgW), Std.int(imgH), pixels);
+		SLog.log('atlasTex err=' + gl.getError());
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-		img = null;
 	}
 
 	/** 画一行文字，返回实际宽度；scale = 目标字号 / 原始字号 */
