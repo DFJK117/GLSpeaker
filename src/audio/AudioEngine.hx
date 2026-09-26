@@ -120,8 +120,12 @@ class AudioEngine {
 		#else
 		var dir = Sys.getCwd() + "music";
 		#end
-		gl.SLog.log('S1: scan dir=' + dir);
 		playlist = [];
+		// 关键守卫：目录不存在时 cpp 的 readDirectory 会原生段错误，必须先检查
+		if (!sys.FileSystem.exists(dir) || !sys.FileSystem.isDirectory(dir)) {
+			trace('music 目录不存在: ' + dir);
+			return;
+		}
 		try {
 			for (f in sys.FileSystem.readDirectory(dir)) {
 				var low = f.toLowerCase();
@@ -130,13 +134,10 @@ class AudioEngine {
 				}
 			}
 		} catch (e:Dynamic) {}
-		gl.SLog.log('S2: scan 完成 n=' + playlist.length);
 		playlist.sort(function(a, b) return Reflect.compare(a, b));
 		if (playlist.length > 0) {
 			playlistIndex = 0;
-			gl.SLog.log('S3: loadFile ' + playlist[0]);
 			loadFile(playlist[0]);
-			gl.SLog.log('S4: loadFile 完成');
 		}
 	}
 

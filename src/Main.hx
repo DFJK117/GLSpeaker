@@ -40,34 +40,25 @@ class Main extends Application {
 	override public function onPreloadComplete():Void {
 		try {
 		gl.SLog.log('preloadComplete 开始');
-		gl.SLog.log('A1: new GLRenderer 前');
 		renderer = new GLRenderer(state);
-		gl.SLog.log('A2: GLRenderer OK');
 		panel = new Panel(state, engine);
-		gl.SLog.log('A3: Panel OK');
 		layoutPanel();
-		gl.SLog.log('A4: layoutPanel OK');
 
 		#if sys
-		gl.SLog.log('B1: Sys.args 前');
 		try {
 			var args:Array<String> = Sys.args();
-			gl.SLog.log('B2: args=' + args.length);
 			for (a in args) {
 				var low = a.toLowerCase();
 				if (StringTools.endsWith(low, ".mp3") || StringTools.endsWith(low, ".ogg") || StringTools.endsWith(low, ".wav")
 					|| StringTools.endsWith(low, ".flac") || StringTools.endsWith(low, ".m4a")) {
-					gl.SLog.log('B2a: loadFile ' + a);
 					engine.loadFile(a);
 					break;
 				}
 			}
-		} catch (e:Dynamic) { gl.SLog.log('B-err args: ' + Std.string(e)); }
-		gl.SLog.log('B3: scan 前');
+		} catch (e:Dynamic) {}
 		try {
 			if (engine.playlist.length == 0 && engine.playlistIndex < 0) engine.scanMusicFolder();
-			gl.SLog.log('B4: scan 完成 playlist=' + engine.playlist.length);
-		} catch (e:Dynamic) { gl.SLog.log('B-err scan: ' + Std.string(e)); }
+		} catch (e:Dynamic) {}
 		#end
 		gl.SLog.log('preloadComplete 完成');
 		} catch (e:Dynamic) {
