@@ -1,18 +1,15 @@
 package gl;
 
 import haxe.Json;
-import lime.graphics.opengl.GL;
-import lime.graphics.opengl.GLTexture;
 import lime.graphics.Image;
-import lime.utils.Assets;
 
 /**
  * 字体图集：tools/gen_font_atlas.py 预生成的 PNG + JSON。
- * drawText 把每个字符作为 UV 四边形推入 Geo.tex。
+ * 纹理在首帧渲染时创建（GL 上下文激活后），drawText 把字符作为 UV quad 推入 Geo.tex。
  */
 class FontAtlas {
 
-	public var textureId:GLTexture;
+	public var textureId:Dynamic = null;
 	public var imgW:Float = 1;
 	public var imgH:Float = 1;
 
@@ -21,29 +18,29 @@ class FontAtlas {
 	var img:Image;
 
 	public function new() {
-		img = Assets.getImage("assets/font_atlas.png");
+		img = lime.utils.Assets.getImage("assets/font_atlas.png");
 		if (img != null) {
 			imgW = img.width;
 			imgH = img.height;
 		} else {
 			trace('font_atlas.png 缺失');
 		}
-		var jsonStr:String = Assets.getText("assets/font_atlas.json");
+		var jsonStr:String = lime.utils.Assets.getText("assets/font_atlas.json");
 		meta = Json.parse(jsonStr);
 		size = meta.size;
 	}
 
 	/** 首帧渲染时调用（GL 上下文已激活） */
-	public function ensureTexture():Void {
+	public function ensureTexture(gl:Dynamic):Void {
 		if (textureId != null || img == null) return;
-		{
-			var img0:Image = img;
-			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
-			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
-			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
-			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
-			img = null; // 释放引用
-		}
+		textureId = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, textureId);
+		GLUtil.uploadTexture(gl, gl.TEXTURE_2D, img);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		img = null;
 	}
 
 	/** 画一行文字，返回实际宽度；scale = 目标字号 / 原始字号 */

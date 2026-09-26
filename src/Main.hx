@@ -75,6 +75,13 @@ class Main extends Application {
 	// ———————— 主循环 ————————
 	function onRenderFrame(context:lime.graphics.RenderContext):Void {
 		if (renderer == null || panel == null) return; // 资源尚未预加载完成
+		// 绑定本帧的实例 GL 上下文（native=gl / web=webgl）
+		#if lime_webgl
+		renderer.gl = context.webgl;
+		#else
+		renderer.gl = context.gl;
+		#end
+		if (renderer.gl == null) return; // 画布降级等无 GL 环境：跳过渲染
 		var now = haxe.Timer.stamp();
 		var dt = now - lastStamp;
 		lastStamp = now;

@@ -1,55 +1,53 @@
 package gl;
 
-import lime.graphics.Image;
 import lime.graphics.opengl.GL;
 import lime.graphics.opengl.GLProgram;
-import lime.utils.Float32Array;
 
+/**
+ * GL 工具。函数一律走"实例上下文"（onRender 传入的 gl），
+ * 常量才允许用静态 GL（常量不需要上下文）。
+ */
 class GLUtil {
 
-	public static function buildProgram(vsSrc:String, fsSrc:String, attribs:Array<String>):GLProgram {
-		var program = GL.createProgram();
+	public static function buildProgram(gl:Dynamic, vsSrc:String, fsSrc:String, attribs:Array<String>):GLProgram {
+		var program:GLProgram = gl.createProgram();
 
-		var vs = GL.createShader(GL.VERTEX_SHADER);
-		GL.shaderSource(vs, vsSrc);
-		GL.compileShader(vs);
-		if (GL.getShaderParameter(vs, GL.COMPILE_STATUS) != 1) {
-			trace('VS 编译失败: ' + GL.getShaderInfoLog(vs));
+		var vs = gl.createShader(GL.VERTEX_SHADER);
+		gl.shaderSource(vs, vsSrc);
+		gl.compileShader(vs);
+		if (gl.getShaderParameter(vs, GL.COMPILE_STATUS) != 1) {
+			trace('VS 编译失败: ' + gl.getShaderInfoLog(vs));
 		}
-		var fs = GL.createShader(GL.FRAGMENT_SHADER);
-		GL.shaderSource(fs, fsSrc);
-		GL.compileShader(fs);
-		if (GL.getShaderParameter(fs, GL.COMPILE_STATUS) != 1) {
-			trace('FS 编译失败: ' + GL.getShaderInfoLog(fs));
+		var fs = gl.createShader(GL.FRAGMENT_SHADER);
+		gl.shaderSource(fs, fsSrc);
+		gl.compileShader(fs);
+		if (gl.getShaderParameter(fs, GL.COMPILE_STATUS) != 1) {
+			trace('FS 编译失败: ' + gl.getShaderInfoLog(fs));
 		}
 
-		GL.attachShader(program, vs);
-		GL.attachShader(program, fs);
+		gl.attachShader(program, vs);
+		gl.attachShader(program, fs);
 		for (i in 0...attribs.length) {
-			GL.bindAttribLocation(program, i, attribs[i]);
+			gl.bindAttribLocation(program, i, attribs[i]);
 		}
-		GL.linkProgram(program);
-		if (GL.getProgramParameter(program, GL.LINK_STATUS) != 1) {
-			trace('Program 链接失败: ' + GL.getProgramInfoLog(program));
+		gl.linkProgram(program);
+		if (gl.getProgramParameter(program, GL.LINK_STATUS) != 1) {
+			trace('Program 链接失败: ' + gl.getProgramInfoLog(program));
 		}
 		return program;
 	}
 
-	/** 跨目标 bufferData：桌面用 DataPointer 版，webgl 用 WEBGL 版 */
-	public static function uploadBuffer(target:Int, data:Float32Array, byteSize:Int):Void {
-		#if lime_webgl
-		GL.bufferDataWEBGL(target, data, GL.DYNAMIC_DRAW);
+	/** 跨目标 bufferData：WebGL 3 参，桌面 GL 4 参（lime_webgl 宏不可靠，用 js 判定） */
+	public static function uploadBuffer(gl:Dynamic, target:Int, data:Dynamic, byteSize:Int):Void {
+		#if js
+		gl.bufferData(target, data, GL.DYNAMIC_DRAW);
 		#else
-		GL.bufferData(target, byteSize, data, GL.DYNAMIC_DRAW);
+		gl.bufferData(target, byteSize, data, GL.DYNAMIC_DRAW);
 		#end
 	}
 
-	/** 跨目标 texImage2D（上传 lime Image） */
-	public static function uploadTexture(target:Int, img:Image):Void {
-		#if lime_webgl
-		GL.texImage2DWEBGL(target, 0, GL.RGBA, img.width, img.height, 0, GL.RGBA, GL.UNSIGNED_BYTE, img);
-		#else
-		GL.texImage2D(target, 0, GL.RGBA, img.width, img.height, 0, GL.RGBA, GL.UNSIGNED_BYTE, img.data);
-		#end
+	/** 跨目标 texImage2D（上传 lime Image 的像素） */
+	public static function uploadTexture(gl:Dynamic, target:Int, img:Dynamic):Void {
+		gl.texImage2D(target, 0, GL.RGBA, img.width, img.height, 0, GL.RGBA, GL.UNSIGNED_BYTE, img.data);
 	}
 }

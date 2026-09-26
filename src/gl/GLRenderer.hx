@@ -66,19 +66,22 @@ class GLRenderer {
 	var geo:Geo;
 	var font:FontAtlas;
 
-	var flatProg:GLProgram;
+	/** 渲染回调传入的实例上下文（native=OpenGL / web=WebGL），函数一律走它 */
+	public var gl:Dynamic;
+	var flatProg:Dynamic;
 	var texProg:GLProgram;
-	var vboFlat:GLBuffer;
-	var vboTex:GLBuffer;
+	var vboFlat:Dynamic;
+	var vboTex:Dynamic;
 
 	var fAPos:Int; var fAColor:Int;
-	var fURes:GLUniformLocation; var fUScale:GLUniformLocation; var fUCenter:GLUniformLocation;
+	var fURes:Dynamic; var fUScale:Dynamic; var fUCenter:Dynamic;
 	var tAPos:Int; var tAUV:Int; var tAColor:Int;
-	var tURes:GLUniformLocation; var tUTex:GLUniformLocation;
+	var tURes:Dynamic; var tUTex:Dynamic;
 
-	var bgTex:GLTexture;
+	var bgTex:Dynamic;
 	var bgImage:Image;
 	var ready:Bool = false;
+	var frame:Int = 0;
 
 	var state:VizState;
 	var time:Float = 0;
@@ -92,28 +95,28 @@ class GLRenderer {
 	}
 
 	function initPrograms():Void {
-		flatProg = GLUtil.buildProgram(FLAT_VERT, FLAT_FRAG, ["aPos", "aColor"]);
+		flatProg = GLUtil.buildProgram(gl, FLAT_VERT, FLAT_FRAG, ["aPos", "aColor"]);
 		fAColor = 1;
-		fURes = GL.getUniformLocation(flatProg, "uRes");
-		fUScale = GL.getUniformLocation(flatProg, "uScale");
-		fUCenter = GL.getUniformLocation(flatProg, "uCenter");
+		fURes = gl.getUniformLocation(flatProg, "uRes");
+		fUScale = gl.getUniformLocation(flatProg, "uScale");
+		fUCenter = gl.getUniformLocation(flatProg, "uCenter");
 
-		texProg = GLUtil.buildProgram(TEX_VERT, TEX_FRAG, ["aPos", "aUV", "aColor"]);
+		texProg = GLUtil.buildProgram(gl, TEX_VERT, TEX_FRAG, ["aPos", "aUV", "aColor"]);
 		tAUV = 1;
 		tAColor = 2;
-		tURes = GL.getUniformLocation(texProg, "uRes");
-		tUTex = GL.getUniformLocation(texProg, "uTex");
+		tURes = gl.getUniformLocation(texProg, "uRes");
+		tUTex = gl.getUniformLocation(texProg, "uTex");
 
-		vboFlat = GL.createBuffer();
-		vboTex = GL.createBuffer();
+		vboFlat = gl.createBuffer();
+		vboTex = gl.createBuffer();
 	}
 
 	function initTextures():Void {
 		var img:Image = bgImage;
 		if (img != null) {
-			bgTex = GL.createTexture();
-			GL.bindTexture(GL.TEXTURE_2D, bgTex);
-			GLUtil.uploadTexture(GL.TEXTURE_2D, img);
+			bgTex = gl.createTexture();
+			gl.bindTexture(gl.TEXTURE_2D, bgTex);
+			GLUtil.uploadTexture(gl, gl.TEXTURE_2D, img);
 			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
 			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
 			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
@@ -186,7 +189,7 @@ class GLRenderer {
 		if (!ready) {
 			initPrograms();
 			initTextures();
-			font.ensureTexture();
+			font.ensureTexture(gl);
 			ready = true;
 		}
 		time += dt;
@@ -202,68 +205,70 @@ class GLRenderer {
 		var bgCount = Std.int(geo.texCount / 8) - bgStart;
 		var textStart = bgStart + bgCount;
 		var textCount = Std.int(geo.texCount / 8) - textStart;
+		frame++;
 
-		GL.viewport(0, 0, Std.int(w), Std.int(h));
-		GL.disable(GL.DEPTH_TEST);
-		GL.enable(GL.BLEND);
-		GL.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-		GL.clearColor(0, 0, 0, 1);
-		GL.clear(GL.COLOR_BUFFER_BIT);
+		gl.viewport(0, 0, Std.int(w), Std.int(h));
+		gl.disable(GL.DEPTH_TEST);
+		gl.enable(GL.BLEND);
+		gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
+		gl.clearColor(0, 0, 0, 1);
+		gl.clear(GL.COLOR_BUFFER_BIT);
 
 		// —— 先上传 tex VBO（背景+文字共用），再画 ——
-		GL.useProgram(texProg);
-		GL.uniform2f(tURes, w, h);
-		GL.uniform1i(tUTex, 0);
-		GL.activeTexture(GL.TEXTURE0);
-		if (font.textureId != null) GL.bindTexture(GL.TEXTURE_2D, font.textureId);
-		GL.bindBuffer(GL.ARRAY_BUFFER, vboTex);
-		if (geo.texCount > 0) GLUtil.uploadBuffer(GL.ARRAY_BUFFER, geo.tex, geo.texCount * 4);
-		GL.enableVertexAttribArray(tAPos);
-		GL.vertexAttribPointer(tAPos, 2, GL.FLOAT, false, 32, 0);
-		GL.enableVertexAttribArray(tAUV);
-		GL.vertexAttribPointer(tAUV, 2, GL.FLOAT, false, 32, 8);
-		GL.enableVertexAttribArray(tAColor);
-		GL.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 32, 16);
+		gl.useProgram(texProg);
+		gl.uniform2f(tURes, w, h);
+		gl.uniform1i(tUTex, 0);
+		gl.activeTexture(GL.TEXTURE0);
+		if (font.textureId != null) gl.bindTexture(GL.TEXTURE_2D, font.textureId);
+		gl.bindBuffer(GL.ARRAY_BUFFER, vboTex);
+		if (geo.texCount > 0) GLUtil.uploadBuffer(gl, GL.ARRAY_BUFFER, geo.tex, geo.texCount * 4);
+		gl.enableVertexAttribArray(tAPos);
+		gl.vertexAttribPointer(tAPos, 2, GL.FLOAT, false, 32, 0);
+		gl.enableVertexAttribArray(tAUV);
+		gl.vertexAttribPointer(tAUV, 2, GL.FLOAT, false, 32, 8);
+		gl.enableVertexAttribArray(tAColor);
+		gl.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 32, 16);
 
 		// Pass1 背景（底层）
 		if (bgTex != null && bgCount > 0) {
-			GL.bindTexture(GL.TEXTURE_2D, bgTex);
-			GL.drawArrays(GL.TRIANGLES, bgStart, bgCount);
-			if (font.textureId != null) GL.bindTexture(GL.TEXTURE_2D, font.textureId);
+			gl.bindTexture(GL.TEXTURE_2D, bgTex);
+			gl.drawArrays(GL.TRIANGLES, bgStart, bgCount);
+			if (font.textureId != null) gl.bindTexture(GL.TEXTURE_2D, font.textureId);
 		}
 
 		// —— flat VBO 上传 + 中心组（果冻）+ 边缘组 ——
-		GL.useProgram(flatProg);
-		GL.uniform2f(fURes, w, h);
-		GL.bindBuffer(GL.ARRAY_BUFFER, vboFlat);
-		if (geo.flatCount > 0) GLUtil.uploadBuffer(GL.ARRAY_BUFFER, geo.flat, geo.flatCount * 4);
-		GL.enableVertexAttribArray(fAPos);
-		GL.vertexAttribPointer(fAPos, 2, GL.FLOAT, false, 24, 0);
-		GL.enableVertexAttribArray(fAColor);
-		GL.vertexAttribPointer(fAColor, 4, GL.FLOAT, false, 24, 8);
+		gl.useProgram(flatProg);
+		gl.uniform2f(fURes, w, h);
+		gl.bindBuffer(GL.ARRAY_BUFFER, vboFlat);
+		if (geo.flatCount > 0) GLUtil.uploadBuffer(gl, GL.ARRAY_BUFFER, geo.flat, geo.flatCount * 4);
+		gl.enableVertexAttribArray(fAPos);
+		gl.vertexAttribPointer(fAPos, 2, GL.FLOAT, false, 24, 0);
+		gl.enableVertexAttribArray(fAColor);
+		gl.vertexAttribPointer(fAColor, 4, GL.FLOAT, false, 24, 8);
 
-		GL.uniform2f(fUScale, jelly, jelly);
-		GL.uniform2f(fUCenter, cx, cy);
-		if (geo.flatCount > edgeCount) GL.drawArrays(GL.TRIANGLES, edgeCount, geo.flatCount - edgeCount);
-		GL.uniform2f(fUScale, 1.0, 1.0);
-		GL.uniform2f(fUCenter, 0.0, 0.0);
-		if (edgeCount <= geo.flatCount) GL.drawArrays(GL.TRIANGLES, 0, edgeCount);
+		var flatVerts = Std.int(geo.flatCount / 6); // float 数 → 顶点数（核心修复）
+		gl.uniform2f(fUScale, jelly, jelly);
+		gl.uniform2f(fUCenter, cx, cy);
+		if (flatVerts > edgeCount) gl.drawArrays(GL.TRIANGLES, edgeCount, flatVerts - edgeCount);
+		gl.uniform2f(fUScale, 1.0, 1.0);
+		gl.uniform2f(fUCenter, 0.0, 0.0);
+		if (edgeCount <= flatVerts) gl.drawArrays(GL.TRIANGLES, 0, edgeCount);
 
 		// Pass2 文字（顶层）
 		if (textCount > 0 && font.textureId != null) {
-			GL.useProgram(texProg);
-			GL.uniform2f(tURes, w, h);
-			GL.uniform1i(tUTex, 0);
-			GL.activeTexture(GL.TEXTURE0);
-			GL.bindTexture(GL.TEXTURE_2D, font.textureId);
-			GL.bindBuffer(GL.ARRAY_BUFFER, vboTex);
-			GL.enableVertexAttribArray(tAPos);
-			GL.vertexAttribPointer(tAPos, 2, GL.FLOAT, false, 32, 0);
-			GL.enableVertexAttribArray(tAUV);
-			GL.vertexAttribPointer(tAUV, 2, GL.FLOAT, false, 32, 8);
-			GL.enableVertexAttribArray(tAColor);
-			GL.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 32, 16);
-			GL.drawArrays(GL.TRIANGLES, textStart, textCount);
+			gl.useProgram(texProg);
+			gl.uniform2f(tURes, w, h);
+			gl.uniform1i(tUTex, 0);
+			gl.activeTexture(GL.TEXTURE0);
+			gl.bindTexture(GL.TEXTURE_2D, font.textureId);
+			gl.bindBuffer(GL.ARRAY_BUFFER, vboTex);
+			gl.enableVertexAttribArray(tAPos);
+			gl.vertexAttribPointer(tAPos, 2, GL.FLOAT, false, 32, 0);
+			gl.enableVertexAttribArray(tAUV);
+			gl.vertexAttribPointer(tAUV, 2, GL.FLOAT, false, 32, 8);
+			gl.enableVertexAttribArray(tAColor);
+			gl.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 32, 16);
+			gl.drawArrays(GL.TRIANGLES, textStart, textCount);
 		}
 	}
 
