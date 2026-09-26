@@ -265,7 +265,7 @@ class GLRenderer {
 		gl.disable(GL.DEPTH_TEST);
 		gl.enable(GL.BLEND);
 		gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-		gl.clearColor(1, 0, 1, 1); // DIAG: 品红=呈现正常
+		gl.clearColor(0, 0, 0, 1);
 		gl.clear(GL.COLOR_BUFFER_BIT);
 
 		// —— 先上传 tex VBO（背景+文字共用），再画 ——
