@@ -63,13 +63,32 @@ class GLRenderer {
 		varying vec4 vColor;
 		void main() { gl_FragColor = texture2D(uTex, vUV) * vColor; }";
 
+	// —— GLSL 150 core 变体（桌面 core profile 回退）——
+	static var FLAT_VERT_CORE =
+		"#version 150\n" +
+		"in vec2 aPos; in vec4 aColor; uniform vec2 uRes; uniform vec2 uScale; uniform vec2 uCenter; out vec4 vColor;" +
+		"void main() { vec2 p = (aPos - uCenter) * uScale + uCenter; vec2 ndc = p / uRes * 2.0 - 1.0;" +
+		"gl_Position = vec4(ndc.x, -ndc.y, 0.0, 1.0); vColor = aColor; }";
+	static var FLAT_FRAG_CORE =
+		"#version 150\n" +
+		"in vec4 vColor; out vec4 fragColor;" +
+		"void main() { fragColor = vColor; }";
+	static var TEX_VERT_CORE =
+		"#version 150\n" +
+		"in vec2 aPos; in vec2 aUV; in vec4 aColor; uniform vec2 uRes; out vec2 vUV; out vec4 vColor;" +
+		"void main() { vec2 ndc = aPos / uRes * 2.0 - 1.0; gl_Position = vec4(ndc.x, -ndc.y, 0.0, 1.0); vUV = aUV; vColor = aColor; }";
+	static var TEX_FRAG_CORE =
+		"#version 150\n" +
+		"in vec2 vUV; in vec4 vColor; uniform sampler2D uTex; out vec4 fragColor;" +
+		"void main() { fragColor = texture2D(uTex, vUV) * vColor; }";
+
 	var geo:Geo;
 	var font:FontAtlas;
 
 	/** 渲染回调传入的实例上下文（native=OpenGL / web=WebGL），函数一律走它 */
 	public var gl:Dynamic;
 	var flatProg:Dynamic;
-	var texProg:GLProgram;
+	var texProg:Dynamic;
 	var vboFlat:Dynamic;
 	var vboTex:Dynamic;
 
@@ -95,13 +114,24 @@ class GLRenderer {
 	}
 
 	function initPrograms():Void {
-		flatProg = GLUtil.buildProgram(gl, FLAT_VERT, FLAT_FRAG, ["aPos", "aColor"]);
+		// 先试 GLSL ES（移动端/兼容 profile），失败换 GLSL 150 core（桌面 core profile）
+		flatProg = GLUtil.tryBuildProgram(gl, FLAT_VERT, FLAT_FRAG, ["aPos", "aColor"]);
+		if (flatProg == null) {
+			SLog.log('flat: ES 失败 → 换 GLSL150');
+			flatProg = GLUtil.tryBuildProgram(gl, FLAT_VERT_CORE, FLAT_FRAG_CORE, ["aPos", "aColor"]);
+		}
+		SLog.log('flat program ' + (flatProg != null ? 'OK' : 'FAIL'));
 		fAColor = 1;
 		fURes = gl.getUniformLocation(flatProg, "uRes");
 		fUScale = gl.getUniformLocation(flatProg, "uScale");
 		fUCenter = gl.getUniformLocation(flatProg, "uCenter");
 
-		texProg = GLUtil.buildProgram(gl, TEX_VERT, TEX_FRAG, ["aPos", "aUV", "aColor"]);
+		texProg = GLUtil.tryBuildProgram(gl, TEX_VERT, TEX_FRAG, ["aPos", "aUV", "aColor"]);
+		if (texProg == null) {
+			SLog.log('tex: ES 失败 → 换 GLSL150');
+			texProg = GLUtil.tryBuildProgram(gl, TEX_VERT_CORE, TEX_FRAG_CORE, ["aPos", "aUV", "aColor"]);
+		}
+		SLog.log('tex program ' + (texProg != null ? 'OK' : 'FAIL'));
 		tAUV = 1;
 		tAColor = 2;
 		tURes = gl.getUniformLocation(texProg, "uRes");

@@ -9,20 +9,23 @@ import lime.graphics.opengl.GLProgram;
  */
 class GLUtil {
 
-	public static function buildProgram(gl:Dynamic, vsSrc:String, fsSrc:String, attribs:Array<String>):GLProgram {
-		var program:GLProgram = gl.createProgram();
+	/** 构建着色器程序；失败时返回 null 并写日志（供调用方走回退/诊断） */
+	public static function tryBuildProgram(gl:Dynamic, vsSrc:String, fsSrc:String, attribs:Array<String>):Dynamic {
+		var program:Dynamic = gl.createProgram();
 
 		var vs = gl.createShader(GL.VERTEX_SHADER);
 		gl.shaderSource(vs, vsSrc);
 		gl.compileShader(vs);
 		if (gl.getShaderParameter(vs, GL.COMPILE_STATUS) != 1) {
-			trace('VS 编译失败: ' + gl.getShaderInfoLog(vs));
+			SLog.log('VS 编译失败: ' + gl.getShaderInfoLog(vs));
+			return null;
 		}
 		var fs = gl.createShader(GL.FRAGMENT_SHADER);
 		gl.shaderSource(fs, fsSrc);
 		gl.compileShader(fs);
 		if (gl.getShaderParameter(fs, GL.COMPILE_STATUS) != 1) {
-			trace('FS 编译失败: ' + gl.getShaderInfoLog(fs));
+			SLog.log('FS 编译失败: ' + gl.getShaderInfoLog(fs));
+			return null;
 		}
 
 		gl.attachShader(program, vs);
@@ -32,7 +35,8 @@ class GLUtil {
 		}
 		gl.linkProgram(program);
 		if (gl.getProgramParameter(program, GL.LINK_STATUS) != 1) {
-			trace('Program 链接失败: ' + gl.getProgramInfoLog(program));
+			SLog.log('Program 链接失败: ' + gl.getProgramInfoLog(program));
+			return null;
 		}
 		return program;
 	}
