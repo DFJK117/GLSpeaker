@@ -15,4 +15,7 @@
 
 	<icon path="assets/c4p.png" />
 
+	<android permission="android.permission.READ_EXTERNAL_STORAGE" />
+	<android target-sdk-version="30" />
+
 </project>

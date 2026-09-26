@@ -115,7 +115,11 @@ class AudioEngine {
 	}
 
 	public function scanMusicFolder():Void {
+		#if android
+		var dir = "/sdcard/Music";
+		#else
 		var dir = Sys.getCwd() + "music";
+		#end
 		playlist = [];
 		try {
 			for (f in sys.FileSystem.readDirectory(dir)) {
