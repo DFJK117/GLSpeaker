@@ -79,6 +79,7 @@ jobs:
       - name: Build APK
         run: haxelib run lime build android -release
         env:
+          ANDROID_SETUP: 1
           ANDROID_SDK: /usr/local/lib/android/sdk
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
           ANDROID_HOME: /usr/local/lib/android/sdk
