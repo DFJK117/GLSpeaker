@@ -187,9 +187,13 @@ class GLRenderer {
 
 	public function draw(w:Float, h:Float, dt:Float):Void {
 		if (!ready) {
+			SLog.log('draw#0: initPrograms 前');
 			initPrograms();
+			SLog.log('draw#0: initPrograms 后');
 			initTextures();
+			SLog.log('draw#0: initTextures 后');
 			font.ensureTexture(gl);
+			SLog.log('draw#0: ensureTexture 后');
 			ready = true;
 		}
 		time += dt;
@@ -215,6 +219,7 @@ class GLRenderer {
 		gl.clear(GL.COLOR_BUFFER_BIT);
 
 		// —— 先上传 tex VBO（背景+文字共用），再画 ——
+		if (frame <= 1) SLog.log('draw#' + frame + ': tex 上传前 texCount=' + geo.texCount);
 		gl.useProgram(texProg);
 		gl.uniform2f(tURes, w, h);
 		gl.uniform1i(tUTex, 0);
@@ -230,6 +235,7 @@ class GLRenderer {
 		gl.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 32, 16);
 
 		// Pass1 背景（底层）
+		if (frame <= 1) SLog.log('draw#' + frame + ': bg 绘制前');
 		if (bgTex != null && bgCount > 0) {
 			gl.bindTexture(GL.TEXTURE_2D, bgTex);
 			gl.drawArrays(GL.TRIANGLES, bgStart, bgCount);
@@ -237,6 +243,7 @@ class GLRenderer {
 		}
 
 		// —— flat VBO 上传 + 中心组（果冻）+ 边缘组 ——
+		if (frame <= 1) SLog.log('draw#' + frame + ': flat 上传前 flatCount=' + geo.flatCount);
 		gl.useProgram(flatProg);
 		gl.uniform2f(fURes, w, h);
 		gl.bindBuffer(GL.ARRAY_BUFFER, vboFlat);
@@ -255,6 +262,7 @@ class GLRenderer {
 		if (edgeCount <= flatVerts) gl.drawArrays(GL.TRIANGLES, 0, edgeCount);
 
 		// Pass2 文字（顶层）
+		if (frame <= 1) SLog.log('draw#' + frame + ': 帧完成');
 		if (textCount > 0 && font.textureId != null) {
 			gl.useProgram(texProg);
 			gl.uniform2f(tURes, w, h);

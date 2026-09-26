@@ -20,6 +20,7 @@ class Main extends Application {
 	var renderer:GLRenderer;
 	var panel:Panel;
 	var lastStamp:Float = 0;
+	var frameCount:Int = 0;
 
 	public function new() {
 		super();
@@ -35,6 +36,7 @@ class Main extends Application {
 
 	override public function onPreloadComplete():Void {
 		try {
+		gl.SLog.log('preloadComplete 开始');
 		renderer = new GLRenderer(state);
 		panel = new Panel(state, engine);
 		layoutPanel();
@@ -53,6 +55,7 @@ class Main extends Application {
 		// ② exe 同级 music/ 文件夹
 		if (engine.playlist.length == 0 && engine.playlistIndex < 0) engine.scanMusicFolder();
 		#end
+		gl.SLog.log('preloadComplete 完成');
 		} catch (e:Dynamic) {
 			logCrash('preload: ' + Std.string(e));
 		}
@@ -84,6 +87,8 @@ class Main extends Application {
 		if (renderer.gl == null) return; // 画布降级等无 GL 环境：跳过渲染
 		var now = haxe.Timer.stamp();
 		var dt = now - lastStamp;
+		if (frameCount == 0) gl.SLog.log('第一帧渲染开始');
+		frameCount++;
 		lastStamp = now;
 
 		// 音频推进 + 分析同步
