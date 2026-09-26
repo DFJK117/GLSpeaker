@@ -1,0 +1,53 @@
+name: build
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  windows:
+    name: Windows exe
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.2.5
+
+      - name: Install libs
+        run: |
+          haxelib install lime 7.9.0 --always
+          haxelib install hxcpp 4.2.1 --always
+
+      - name: Build (hxcpp -> MSVC)
+        run: haxelib run lime build windows -release
+
+      - name: Upload exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: GLSpeaker-windows-x64
+          path: export/windows/bin/
+
+  web:
+    name: Web build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.2.5
+
+      - name: Install libs
+        run: haxelib install lime 7.9.0 --always
+
+      - name: Build html5
+        run: haxelib run lime build html5
+
+      - name: Upload web
+        uses: actions/upload-artifact@v4
+        with:
+          name: GLSpeaker-web
+          path: export/html5/bin/

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+
+	<meta title="GLSpeaker" package="com.glspeaker.viz" version="1.0.0" company="GLSpeaker" />
+	<app main="Main" file="GLSpeaker" path="export" />
+
+	<window width="1280" height="720" fps="60" vsync="true" background="#000000" hardware="true" />
+	<window orientation="landscape" />
+
+	<source path="src" />
+
+	<haxelib name="lime" />
+
+	<assets path="assets" include="*.png|*.gif|*.json" exclude="*.vec" />
+
+	<icon path="assets/c4p.png" />
+
+</project>
