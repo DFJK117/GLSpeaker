@@ -36,6 +36,7 @@ class FontAtlas {
 		textureId = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, textureId);
 		GLUtil.uploadTexture(gl, gl.TEXTURE_2D, img);
+		gl.SLog.log('atlasTex上传后 err=' + gl.getError());
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);

@@ -256,7 +256,10 @@ class GLRenderer {
 		gl.activeTexture(GL.TEXTURE0);
 		if (font.textureId != null) gl.bindTexture(GL.TEXTURE_2D, font.textureId);
 		gl.bindBuffer(GL.ARRAY_BUFFER, vboTex);
-		if (geo.texCount > 0) GLUtil.uploadBuffer(gl, GL.ARRAY_BUFFER, geo.tex, geo.texCount * 4);
+		if (geo.texCount > 0) {
+			GLUtil.uploadBuffer(gl, GL.ARRAY_BUFFER, geo.tex, geo.texCount * 4);
+			if (frame <= 2) SLog.log('texUpload后 err=' + gl.getError() + ' bytes=' + gl.getBufferParameter(GL.ARRAY_BUFFER, gl.BUFFER_SIZE));
+		}
 		gl.enableVertexAttribArray(tAPos);
 		gl.vertexAttribPointer(tAPos, 2, GL.FLOAT, false, 32, 0);
 		gl.enableVertexAttribArray(tAUV);
@@ -277,7 +280,10 @@ class GLRenderer {
 		gl.useProgram(flatProg);
 		gl.uniform2f(fURes, w, h);
 		gl.bindBuffer(GL.ARRAY_BUFFER, vboFlat);
-		if (geo.flatCount > 0) GLUtil.uploadBuffer(gl, GL.ARRAY_BUFFER, geo.flat, geo.flatCount * 4);
+		if (geo.flatCount > 0) {
+			GLUtil.uploadBuffer(gl, GL.ARRAY_BUFFER, geo.flat, geo.flatCount * 4);
+			if (frame <= 2) SLog.log('flatUpload后 err=' + gl.getError() + ' bytes=' + gl.getBufferParameter(GL.ARRAY_BUFFER, gl.BUFFER_SIZE));
+		}
 		gl.enableVertexAttribArray(fAPos);
 		gl.vertexAttribPointer(fAPos, 2, GL.FLOAT, false, 24, 0);
 		gl.enableVertexAttribArray(fAColor);
