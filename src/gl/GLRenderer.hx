@@ -180,8 +180,6 @@ class GLRenderer {
 	/** 帧开始：由 Main 先调用（UI 先画，场景后画，都在同一缓冲） */
 	public function clearFrame():Void {
 		geo.clear();
-		_bgVertStart = 0;
-		_bgVertCount = 0;
 	}
 
 	public function draw(w:Float, h:Float, dt:Float):Void {
@@ -194,6 +192,17 @@ class GLRenderer {
 		time += dt;
 		buildScene(w, h);
 
+		var cx = w * 0.5, cy = h * 0.5;
+		var jelly = 1.0 + state.rmsSmooth * 0.5 * Math.min(2.0, state.gain);
+		var edgeCount = 12;
+
+		// 背景 quad 推入 tex 流（文字已在前面推入）
+		var bgStart = Std.int(geo.texCount / 8);
+		geo.tQuad(0, 0, w, 0, w, h, 0, h, 0, 0, 1, 1, 1, 1, 1, 1);
+		var bgCount = Std.int(geo.texCount / 8) - bgStart;
+		var textStart = bgStart + bgCount;
+		var textCount = Std.int(geo.texCount / 8) - textStart;
+
 		GL.viewport(0, 0, Std.int(w), Std.int(h));
 		GL.disable(GL.DEPTH_TEST);
 		GL.enable(GL.BLEND);
@@ -201,76 +210,61 @@ class GLRenderer {
 		GL.clearColor(0, 0, 0, 1);
 		GL.clear(GL.COLOR_BUFFER_BIT);
 
-		// Pass1 背景纹理
-		if (bgTex != null) {
-			GL.useProgram(texProg);
-			GL.uniform2f(tURes, w, h);
-			GL.uniform1i(tUTex, 0);
-			GL.activeTexture(GL.TEXTURE0);
+		// —— 先上传 tex VBO（背景+文字共用），再画 ——
+		GL.useProgram(texProg);
+		GL.uniform2f(tURes, w, h);
+		GL.uniform1i(tUTex, 0);
+		GL.activeTexture(GL.TEXTURE0);
+		if (font.textureId != null) GL.bindTexture(GL.TEXTURE_2D, font.textureId);
+		GL.bindBuffer(GL.ARRAY_BUFFER, vboTex);
+		if (geo.texCount > 0) GLUtil.uploadBuffer(GL.ARRAY_BUFFER, geo.tex, geo.texCount * 4);
+		GL.enableVertexAttribArray(tAPos);
+		GL.vertexAttribPointer(tAPos, 2, GL.FLOAT, false, 32, 0);
+		GL.enableVertexAttribArray(tAUV);
+		GL.vertexAttribPointer(tAUV, 2, GL.FLOAT, false, 32, 8);
+		GL.enableVertexAttribArray(tAColor);
+		GL.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 32, 16);
+
+		// Pass1 背景（底层）
+		if (bgTex != null && bgCount > 0) {
 			GL.bindTexture(GL.TEXTURE_2D, bgTex);
-			GL.bindBuffer(GL.ARRAY_BUFFER, vboTex);
-			GL.enableVertexAttribArray(tAPos);
-			GL.vertexAttribPointer(tAPos, 2, GL.FLOAT, false, 32, 0);
-			GL.enableVertexAttribArray(tAUV);
-			GL.vertexAttribPointer(tAUV, 2, GL.FLOAT, false, 32, 8);
-			GL.enableVertexAttribArray(tAColor);
-			GL.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 32, 16);
-			// 临时把全屏 quad 塞进 tex 流（先复用 geo.tex 头部？不行——直接推背景 quad 到 tex 流）
-			drawBgQuad(w, h);
+			GL.drawArrays(GL.TRIANGLES, bgStart, bgCount);
+			if (font.textureId != null) GL.bindTexture(GL.TEXTURE_2D, font.textureId);
 		}
 
-		// Pass2 中心组（果冻） + Pass3 边缘组
-		var cx = w * 0.5, cy = h * 0.5;
-		var jelly = 1.0 + state.rmsSmooth * 0.5 * Math.min(2.0, state.gain);
+		// —— flat VBO 上传 + 中心组（果冻）+ 边缘组 ——
 		GL.useProgram(flatProg);
 		GL.uniform2f(fURes, w, h);
 		GL.bindBuffer(GL.ARRAY_BUFFER, vboFlat);
-		GLUtil.uploadBuffer(GL.ARRAY_BUFFER, geo.flat, geo.flatCount * 4);
+		if (geo.flatCount > 0) GLUtil.uploadBuffer(GL.ARRAY_BUFFER, geo.flat, geo.flatCount * 4);
 		GL.enableVertexAttribArray(fAPos);
 		GL.vertexAttribPointer(fAPos, 2, GL.FLOAT, false, 24, 0);
 		GL.enableVertexAttribArray(fAColor);
 		GL.vertexAttribPointer(fAColor, 4, GL.FLOAT, false, 24, 8);
 
-		// 顶点布局: [0..12) 边缘柱, [12..flatCount) 中心组
 		GL.uniform2f(fUScale, jelly, jelly);
 		GL.uniform2f(fUCenter, cx, cy);
-		if (geo.flatCount > 12) GL.drawArrays(GL.TRIANGLES, 12, geo.flatCount - 12);
+		if (geo.flatCount > edgeCount) GL.drawArrays(GL.TRIANGLES, edgeCount, geo.flatCount - edgeCount);
 		GL.uniform2f(fUScale, 1.0, 1.0);
 		GL.uniform2f(fUCenter, 0.0, 0.0);
-		GL.drawArrays(GL.TRIANGLES, 0, 12);
+		if (edgeCount <= geo.flatCount) GL.drawArrays(GL.TRIANGLES, 0, edgeCount);
 
-		// Pass4 文字
-		if (geo.texCount > 0 && font.textureId != null) {
+		// Pass2 文字（顶层）
+		if (textCount > 0 && font.textureId != null) {
 			GL.useProgram(texProg);
 			GL.uniform2f(tURes, w, h);
 			GL.uniform1i(tUTex, 0);
 			GL.activeTexture(GL.TEXTURE0);
 			GL.bindTexture(GL.TEXTURE_2D, font.textureId);
 			GL.bindBuffer(GL.ARRAY_BUFFER, vboTex);
-			GLUtil.uploadBuffer(GL.ARRAY_BUFFER, geo.tex, geo.texCount * 4);
 			GL.enableVertexAttribArray(tAPos);
 			GL.vertexAttribPointer(tAPos, 2, GL.FLOAT, false, 32, 0);
 			GL.enableVertexAttribArray(tAUV);
 			GL.vertexAttribPointer(tAUV, 2, GL.FLOAT, false, 32, 8);
 			GL.enableVertexAttribArray(tAColor);
 			GL.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 32, 16);
-			GL.drawArrays(GL.TRIANGLES, _bgVertStart + _bgVertCount, Std.int(geo.texCount / 8) - (_bgVertStart + _bgVertCount));
+			GL.drawArrays(GL.TRIANGLES, textStart, textCount);
 		}
-	}
-
-	/** 背景全屏 quad 追加到 tex 流尾部，并返回其起始顶点偏移（供 drawArrays 用） */
-	var _bgVertStart:Int = 0;
-	var _bgVertCount:Int = 0;
-
-	function drawBgQuad(w:Float, h:Float):Void {
-		_bgVertStart = Std.int(geo.texCount / 8);
-		geo.tQuad(0, 0, w, 0, w, h, 0, h, 0, 0, 1, 1, 1, 1, 1, 1);
-		_bgVertCount = Std.int(geo.texCount / 8) - _bgVertStart;
-		GL.drawArrays(GL.TRIANGLES, _bgVertStart, _bgVertCount);
-	}
-
-	function bgQuadVerts():Int {
-		return _bgVertStart + _bgVertCount;
 	}
 
 	public function getGeo():Geo return geo;
