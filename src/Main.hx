@@ -34,6 +34,7 @@ class Main extends Application {
 	}
 
 	override public function onPreloadComplete():Void {
+		try {
 		renderer = new GLRenderer(state);
 		panel = new Panel(state, engine);
 		layoutPanel();
@@ -51,6 +52,16 @@ class Main extends Application {
 		}
 		// ② exe 同级 music/ 文件夹
 		if (engine.playlist.length == 0 && engine.playlistIndex < 0) engine.scanMusicFolder();
+		#end
+		} catch (e:Dynamic) {
+			logCrash('preload: ' + Std.string(e));
+		}
+	}
+
+	static function logCrash(msg:String):Void {
+		trace(msg);
+		#if sys
+		try sys.io.File.saveContent("glspeaker-crash.log", Date.now().toString() + " " + msg) catch (e:Dynamic) {};
 		#end
 	}
 

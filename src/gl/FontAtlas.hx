@@ -18,25 +18,32 @@ class FontAtlas {
 
 	var meta:Dynamic;
 	var size:Float;
+	var img:Image;
 
 	public function new() {
-		var img:Image = Assets.getImage("assets/font_atlas.png");
+		img = Assets.getImage("assets/font_atlas.png");
 		if (img != null) {
 			imgW = img.width;
 			imgH = img.height;
-			textureId = GL.createTexture();
-			GL.bindTexture(GL.TEXTURE_2D, textureId);
-			GLUtil.uploadTexture(GL.TEXTURE_2D, img);
-			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
-			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
-			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
-			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
 		} else {
 			trace('font_atlas.png 缺失');
 		}
 		var jsonStr:String = Assets.getText("assets/font_atlas.json");
 		meta = Json.parse(jsonStr);
 		size = meta.size;
+	}
+
+	/** 首帧渲染时调用（GL 上下文已激活） */
+	public function ensureTexture():Void {
+		if (textureId != null || img == null) return;
+		{
+			var img0:Image = img;
+			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
+			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
+			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
+			GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
+			img = null; // 释放引用
+		}
 	}
 
 	/** 画一行文字，返回实际宽度；scale = 目标字号 / 原始字号 */

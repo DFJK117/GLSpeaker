@@ -77,6 +77,8 @@ class GLRenderer {
 	var tURes:GLUniformLocation; var tUTex:GLUniformLocation;
 
 	var bgTex:GLTexture;
+	var bgImage:Image;
+	var ready:Bool = false;
 
 	var state:VizState;
 	var time:Float = 0;
@@ -84,9 +86,9 @@ class GLRenderer {
 	public function new(state:VizState) {
 		this.state = state;
 		geo = new Geo();
-		font = new FontAtlas();
-		initPrograms();
-		initTextures();
+		font = new FontAtlas();       // 只读资产数据，不碰 GL
+		bgImage = Assets.getImage("assets/back.png");
+		// GL 资源延后到首帧渲染时创建（那时 GL 上下文才是当前的）
 	}
 
 	function initPrograms():Void {
@@ -107,7 +109,7 @@ class GLRenderer {
 	}
 
 	function initTextures():Void {
-		var img:Image = Assets.getImage("assets/back.png");
+		var img:Image = bgImage;
 		if (img != null) {
 			bgTex = GL.createTexture();
 			GL.bindTexture(GL.TEXTURE_2D, bgTex);
@@ -183,6 +185,12 @@ class GLRenderer {
 	}
 
 	public function draw(w:Float, h:Float, dt:Float):Void {
+		if (!ready) {
+			initPrograms();
+			initTextures();
+			font.ensureTexture();
+			ready = true;
+		}
 		time += dt;
 		buildScene(w, h);
 
