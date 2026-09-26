@@ -245,7 +245,7 @@ class GLRenderer {
 		gl.disable(GL.DEPTH_TEST);
 		gl.enable(GL.BLEND);
 		gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-		gl.clearColor(0, 0, 0, 1);
+		gl.clearColor(1, 0, 1, 1); // DIAG: 品红=呈现正常
 		gl.clear(GL.COLOR_BUFFER_BIT);
 
 		// —— 先上传 tex VBO（背景+文字共用），再画 ——
@@ -287,9 +287,11 @@ class GLRenderer {
 		gl.uniform2f(fUScale, jelly, jelly);
 		gl.uniform2f(fUCenter, cx, cy);
 		if (flatVerts > edgeCount) gl.drawArrays(GL.TRIANGLES, edgeCount, flatVerts - edgeCount);
+		if (frame <= 2) SLog.log('flat后 err=' + gl.getError());
 		gl.uniform2f(fUScale, 1.0, 1.0);
 		gl.uniform2f(fUCenter, 0.0, 0.0);
 		if (edgeCount <= flatVerts) gl.drawArrays(GL.TRIANGLES, 0, edgeCount);
+		if (frame <= 2) SLog.log('edge后 err=' + gl.getError());
 
 		// Pass2 文字（顶层）
 		if (frame <= 1) SLog.log('draw#' + frame + ': 帧完成');
@@ -307,6 +309,7 @@ class GLRenderer {
 			gl.enableVertexAttribArray(tAColor);
 			gl.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 32, 16);
 			gl.drawArrays(GL.TRIANGLES, textStart, textCount);
+			if (frame <= 2) SLog.log('text后 err=' + gl.getError());
 		}
 	}
 
