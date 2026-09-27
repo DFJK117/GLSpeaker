@@ -15,16 +15,19 @@ import lime.graphics.opengl.GLProgram;
  * buffer 指针，lime 内部渲染自用的正确路径）拿指针。
  * DataPointer 的底层类型就是 Float（cpp 目标），Float 直接可当 DataPointer 传。
  */
+#if cpp
+@:cffi extern class LimeCFFI {
+	@:cffi static function lime_bytes_get_data_pointer(data:Dynamic):Float;
+}
+#end
+
 class GLUtil {
 
 	#if cpp
-	/** 与 lime NativeCFFI.hx cpp 分支完全同款的 @:cffi 声明（hxcpp 链接期绑定） */
-	@:cffi private static function lime_bytes_get_data_pointer(data:Dynamic):Float;
-
 	/** haxe.io.Bytes → 底层连续内存指针（Float 形式；DataPointer 底层类型即 Float） */
 	public static inline function bytesPointer(bytes:haxe.io.Bytes):Float {
 		if (bytes == null) return 0;
-		return lime_bytes_get_data_pointer(bytes);
+		return LimeCFFI.lime_bytes_get_data_pointer(bytes);
 	}
 	#else
 	public static inline function bytesPointer(bytes:haxe.io.Bytes):Float {
