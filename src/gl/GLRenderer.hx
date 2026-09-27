@@ -354,8 +354,8 @@ class GLRenderer {
 			if (frame <= 2) SLog.log('text后 err=' + gl.getError());
 		}
 
-		// diag9: 第 5 帧起每帧画无缓冲绿三角（裁决管线本身）
-		if (frame >= 5 && triProg != null) {
+		// diag9: 第 5~10 帧画无缓冲绿三角（裁决管线，之后停画避免遮挡常规内容）
+		if (frame >= 5 && frame <= 10 && triProg != null) {
 			gl.useProgram(triProg);
 			gl.disableVertexAttribArray(0);
 			gl.disableVertexAttribArray(1);
