@@ -218,6 +218,11 @@ class GLRenderer {
 		var lh = Math.min(1, state.rmsSmooth * 1.6) * h;
 		geo.fRect(0, h - lh, rw, lh, 0.1, 1.0, 0.45, 0.85);
 		geo.fRect(w - rw, 0, rw, lh, 0.1, 1.0, 0.45, 0.85);
+
+		// diag7: 巨型纯红测试块（裁决绘制链路：300x300 居中）
+		geo.fQuad(w * 0.5 - 150, h * 0.5 - 150, w * 0.5 + 150, h * 0.5 - 150,
+			w * 0.5 + 150, h * 0.5 + 150, w * 0.5 - 150, h * 0.5 + 150,
+			1, 0, 0, 1);
 	}
 
 	// ——————————————————————————————
@@ -240,10 +245,10 @@ class GLRenderer {
 			ready = true;
 		}
 		time += dt;
-		SLog.log('draw#' + frame + ': buildScene 前');
+		if (frame <= 8) SLog.log('draw#' + frame + ': buildScene 前');
 		buildScene(w, h);
 		geo.syncBytes();
-		SLog.log('draw#' + frame + ': buildScene 后');
+		if (frame <= 8) SLog.log('draw#' + frame + ': buildScene 后');
 		if (frame <= 2) {
 			gl.viewport(0, 0, 1, 1);
 			SLog.log('draw#' + frame + ': viewport 探针 err=' + gl.getError());
@@ -265,7 +270,7 @@ class GLRenderer {
 		gl.disable(GL.DEPTH_TEST);
 		gl.enable(GL.BLEND);
 		gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-		gl.clearColor(0, 0, 0, 1);
+		gl.clearColor(1, 0, 1, 1); // diag7: 品红清屏（裁决呈现链路）
 		gl.clear(GL.COLOR_BUFFER_BIT);
 
 		// —— 先上传 tex VBO（背景+文字共用），再画 ——
@@ -336,6 +341,17 @@ class GLRenderer {
 			gl.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 32, 16);
 			gl.drawArrays(GL.TRIANGLES, textStart, textCount);
 			if (frame <= 2) SLog.log('text后 err=' + gl.getError());
+		}
+
+		// diag7: readPixels 帧缓冲裁决（第 3 帧读中心与角落）
+		if (frame == 3) {
+			var c1 = haxe.io.Bytes.alloc(4);
+			gl.readPixels(Std.int(w * 0.5), Std.int(h * 0.5), 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, c1);
+			SLog.log('READ center RGB=' + c1.get(0) + ',' + c1.get(1) + ',' + c1.get(2) + ' err=' + gl.getError());
+			var c2 = haxe.io.Bytes.alloc(4);
+			gl.readPixels(2, 2, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, c2);
+			SLog.log('READ corner RGB=' + c2.get(0) + ',' + c2.get(1) + ',' + c2.get(2) + ' err=' + gl.getError());
+			SLog.log('READ win=' + Std.int(w) + 'x' + Std.int(h));
 		}
 	}
 
