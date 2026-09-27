@@ -82,6 +82,15 @@ class GLRenderer {
 		"in vec2 vUV; in vec4 vColor; uniform sampler2D uTex; out vec4 fragColor;" +
 		"void main() { fragColor = texture2D(uTex, vUV) * vColor; }";
 
+	// diag9: 无顶点缓冲测试 program（gl_VertexID 生成全屏大三角，纯绿）——裁决 GL 管线本身
+	static var TRI_VS_CORE =
+		"#version 150\n" +
+		"void main() { vec2 p = vec2((gl_VertexID == 1) ? 3.0 : -1.0, (gl_VertexID == 2) ? 3.0 : -1.0);" +
+		"gl_Position = vec4(p, 0.0, 1.0); }";
+	static var TRI_FS_CORE =
+		"#version 150\n" +
+		"out vec4 fragColor; void main() { fragColor = vec4(0.0, 1.0, 0.0, 1.0); }";
+
 	var geo:Geo;
 	var font:FontAtlas;
 
@@ -102,6 +111,7 @@ class GLRenderer {
 	var bgPixels:haxe.io.Bytes;
 	var bgW:Int = 1;
 	var bgH:Int = 1;
+	var triProg:Dynamic;
 	var ready:Bool = false;
 	var frame:Int = 0;
 
@@ -152,6 +162,14 @@ class GLRenderer {
 
 		vboFlat = gl.createBuffer();
 		vboTex = gl.createBuffer();
+
+		// diag9: 无缓冲全屏三角 program（裁决管线）
+		triProg = GLUtil.tryBuildProgram(gl, TRI_VS_CORE, TRI_FS_CORE, []);
+		SLog.log('tri program ' + (triProg != null ? 'OK' : 'FAIL') + ' err=' + gl.getError());
+		SLog.log('LOC flat: aPos=' + gl.getAttribLocation(flatProg, 'aPos') + ' aColor=' + gl.getAttribLocation(flatProg, 'aColor')
+			+ ' uRes=' + fURes + ' uScale=' + fUScale + ' uCenter=' + fUCenter);
+		SLog.log('LOC tex: aPos=' + gl.getAttribLocation(texProg, 'aPos') + ' aUV=' + gl.getAttribLocation(texProg, 'aUV')
+			+ ' aColor=' + gl.getAttribLocation(texProg, 'aColor') + ' uRes=' + tURes + ' uTex=' + tUTex);
 	}
 
 	function initTextures():Void {
@@ -341,6 +359,16 @@ class GLRenderer {
 			gl.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 32, 16);
 			gl.drawArrays(GL.TRIANGLES, textStart, textCount);
 			if (frame <= 2) SLog.log('text后 err=' + gl.getError());
+		}
+
+		// diag9: 第 5 帧起每帧画无缓冲绿三角（裁决管线本身）
+		if (frame >= 5 && triProg != null) {
+			gl.useProgram(triProg);
+			gl.disableVertexAttribArray(0);
+			gl.disableVertexAttribArray(1);
+			gl.disableVertexAttribArray(2);
+			gl.drawArrays(GL.TRIANGLES, 0, 3);
+			if (frame == 5) SLog.log('TRI drawn err=' + gl.getError());
 		}
 		// readPixels 在 lime native 段错误（DataPointer 第三个受害者），改用外部截屏裁决
 	}
