@@ -342,17 +342,7 @@ class GLRenderer {
 			gl.drawArrays(GL.TRIANGLES, textStart, textCount);
 			if (frame <= 2) SLog.log('text后 err=' + gl.getError());
 		}
-
-		// diag7: readPixels 帧缓冲裁决（第 3 帧读中心与角落）
-		if (frame == 3) {
-			var c1 = haxe.io.Bytes.alloc(4);
-			gl.readPixels(Std.int(w * 0.5), Std.int(h * 0.5), 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, c1);
-			SLog.log('READ center RGB=' + c1.get(0) + ',' + c1.get(1) + ',' + c1.get(2) + ' err=' + gl.getError());
-			var c2 = haxe.io.Bytes.alloc(4);
-			gl.readPixels(2, 2, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, c2);
-			SLog.log('READ corner RGB=' + c2.get(0) + ',' + c2.get(1) + ',' + c2.get(2) + ' err=' + gl.getError());
-			SLog.log('READ win=' + Std.int(w) + 'x' + Std.int(h));
-		}
+		// readPixels 在 lime native 段错误（DataPointer 第三个受害者），改用外部截屏裁决
 	}
 
 	public function getGeo():Geo return geo;
