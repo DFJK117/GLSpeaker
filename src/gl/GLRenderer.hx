@@ -301,11 +301,11 @@ class GLRenderer {
 		if (font.textureId != null) gl.bindTexture(GL.TEXTURE_2D, font.textureId);
 		gl.bindBuffer(GL.ARRAY_BUFFER, null);
 		gl.enableVertexAttribArray(tAPos);
-		gl.vertexAttribPointer(tAPos, 2, GL.FLOAT, false, 8, geo.cTPosBytes);
+		gl.vertexAttribPointer(tAPos, 2, GL.FLOAT, false, 8, geo.cTPosPtr);
 		gl.enableVertexAttribArray(tAUV);
-		gl.vertexAttribPointer(tAUV, 2, GL.FLOAT, false, 8, geo.cTUVBytes);
+		gl.vertexAttribPointer(tAUV, 2, GL.FLOAT, false, 8, geo.cTUVPtr);
 		gl.enableVertexAttribArray(tAColor);
-		gl.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 16, geo.cTColBytes);
+		gl.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 16, geo.cTColPtr);
 
 		// Pass1 背景（底层）
 		if (frame <= 1) SLog.log('draw#' + frame + ': bg 绘制前');
@@ -321,9 +321,9 @@ class GLRenderer {
 		gl.uniform2f(fURes, w, h);
 		gl.bindBuffer(GL.ARRAY_BUFFER, null);
 		gl.enableVertexAttribArray(fAPos);
-		gl.vertexAttribPointer(fAPos, 2, GL.FLOAT, false, 8, geo.cPosBytes);
+		gl.vertexAttribPointer(fAPos, 2, GL.FLOAT, false, 8, geo.cPosPtr);
 		gl.enableVertexAttribArray(fAColor);
-		gl.vertexAttribPointer(fAColor, 4, GL.FLOAT, false, 16, geo.cColBytes);
+		gl.vertexAttribPointer(fAColor, 4, GL.FLOAT, false, 16, geo.cColPtr);
 
 		var flatVerts = Std.int(geo.flatCount / 6); // float 数 → 顶点数
 		gl.uniform2f(fUScale, jelly, jelly);
@@ -345,11 +345,11 @@ class GLRenderer {
 			gl.bindTexture(GL.TEXTURE_2D, font.textureId);
 			gl.bindBuffer(GL.ARRAY_BUFFER, null);
 			gl.enableVertexAttribArray(tAPos);
-			gl.vertexAttribPointer(tAPos, 2, GL.FLOAT, false, 8, geo.cTPosBytes);
+			gl.vertexAttribPointer(tAPos, 2, GL.FLOAT, false, 8, geo.cTPosPtr);
 			gl.enableVertexAttribArray(tAUV);
-			gl.vertexAttribPointer(tAUV, 2, GL.FLOAT, false, 8, geo.cTUVBytes);
+			gl.vertexAttribPointer(tAUV, 2, GL.FLOAT, false, 8, geo.cTUVPtr);
 			gl.enableVertexAttribArray(tAColor);
-			gl.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 16, geo.cTColBytes);
+			gl.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 16, geo.cTColPtr);
 			gl.drawArrays(GL.TRIANGLES, textStart, textCount);
 			if (frame <= 2) SLog.log('text后 err=' + gl.getError());
 		}

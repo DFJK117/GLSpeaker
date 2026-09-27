@@ -111,11 +111,22 @@ class Geo {
 	public var cTUVBytes:haxe.io.Bytes;   // tex UV 2f/顶点
 	public var cTColBytes:haxe.io.Bytes;  // tex 颜色 4f/顶点
 
+	// diag11: 底层内存指针（lime CFFI 直取，Float 形式 = DataPointer 底层类型）
+	public var cPosPtr:Float = 0;
+	public var cColPtr:Float = 0;
+	public var cTPosPtr:Float = 0;
+	public var cTUVPtr:Float = 0;
+	public var cTColPtr:Float = 0;
+
 	public function syncClientBytes():Void {
 		var v = Std.int(flatCount / 6);
 		if (cPosBytes == null || cPosBytes.length < v * 8) {
 			cPosBytes = haxe.io.Bytes.alloc(Std.int(flat.length / 6) * 8);
 			cColBytes = haxe.io.Bytes.alloc(Std.int(flat.length / 6) * 16);
+			#if cpp
+			cPosPtr = GLUtil.bytesPointer(cPosBytes);
+			cColPtr = GLUtil.bytesPointer(cColBytes);
+			#end
 		}
 		for (i in 0...v) {
 			cPosBytes.setFloat(i * 8, flat[i * 6]);
@@ -127,6 +138,11 @@ class Geo {
 			cTPosBytes = haxe.io.Bytes.alloc(Std.int(tex.length / 8) * 8);
 			cTUVBytes = haxe.io.Bytes.alloc(Std.int(tex.length / 8) * 8);
 			cTColBytes = haxe.io.Bytes.alloc(Std.int(tex.length / 8) * 16);
+			#if cpp
+			cTPosPtr = GLUtil.bytesPointer(cTPosBytes);
+			cTUVPtr = GLUtil.bytesPointer(cTUVBytes);
+			cTColPtr = GLUtil.bytesPointer(cTColBytes);
+			#end
 		}
 		for (i in 0...vt) {
 			cTPosBytes.setFloat(i * 8, tex[i * 8]);
