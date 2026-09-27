@@ -266,6 +266,7 @@ class GLRenderer {
 		if (frame <= 8) SLog.log('draw#' + frame + ': buildScene 前');
 		buildScene(w, h);
 		geo.syncBytes();
+		geo.syncClientBytes(); // diag10: 客户端数组通道
 		if (frame <= 8) SLog.log('draw#' + frame + ': buildScene 后');
 		if (frame <= 2) {
 			gl.viewport(0, 0, 1, 1);
@@ -288,27 +289,23 @@ class GLRenderer {
 		gl.disable(GL.DEPTH_TEST);
 		gl.enable(GL.BLEND);
 		gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-		gl.clearColor(1, 0, 1, 1); // diag7: 品红清屏（裁决呈现链路）
+		gl.clearColor(1, 0, 1, 1); // diag: 品红清屏（裁决呈现链路）
 		gl.clear(GL.COLOR_BUFFER_BIT);
 
-		// —— 先上传 tex VBO（背景+文字共用），再画 ——
+		// —— diag10: tex 流改客户端数组绘制（背景+文字）——
 		if (frame <= 1) SLog.log('draw#' + frame + ': tex 上传前 texCount=' + geo.texCount);
 		gl.useProgram(texProg);
 		gl.uniform2f(tURes, w, h);
 		gl.uniform1i(tUTex, 0);
 		gl.activeTexture(GL.TEXTURE0);
 		if (font.textureId != null) gl.bindTexture(GL.TEXTURE_2D, font.textureId);
-		gl.bindBuffer(GL.ARRAY_BUFFER, vboTex);
-		if (geo.texCount > 0) {
-			GLUtil.uploadBuffer(gl, GL.ARRAY_BUFFER, geo.texBytes, geo.texCount * 4);
-			if (frame <= 2) SLog.log('texUpload后 err=' + gl.getError() + ' bytes=' + gl.getBufferParameter(GL.ARRAY_BUFFER, gl.BUFFER_SIZE));
-		}
+		gl.bindBuffer(GL.ARRAY_BUFFER, null);
 		gl.enableVertexAttribArray(tAPos);
-		gl.vertexAttribPointer(tAPos, 2, GL.FLOAT, false, 32, 0);
+		gl.vertexAttribPointer(tAPos, 2, GL.FLOAT, false, 8, geo.cTPosBytes);
 		gl.enableVertexAttribArray(tAUV);
-		gl.vertexAttribPointer(tAUV, 2, GL.FLOAT, false, 32, 8);
+		gl.vertexAttribPointer(tAUV, 2, GL.FLOAT, false, 8, geo.cTUVBytes);
 		gl.enableVertexAttribArray(tAColor);
-		gl.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 32, 16);
+		gl.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 16, geo.cTColBytes);
 
 		// Pass1 背景（底层）
 		if (frame <= 1) SLog.log('draw#' + frame + ': bg 绘制前');
@@ -318,21 +315,17 @@ class GLRenderer {
 			if (font.textureId != null) gl.bindTexture(GL.TEXTURE_2D, font.textureId);
 		}
 
-		// —— flat VBO 上传 + 中心组（果冻）+ 边缘组 ——
+		// —— diag10: flat 流客户端数组绘制（中心组果冻 + 边缘组）——
 		if (frame <= 1) SLog.log('draw#' + frame + ': flat 上传前 flatCount=' + geo.flatCount);
 		gl.useProgram(flatProg);
 		gl.uniform2f(fURes, w, h);
-		gl.bindBuffer(GL.ARRAY_BUFFER, vboFlat);
-		if (geo.flatCount > 0) {
-			GLUtil.uploadBuffer(gl, GL.ARRAY_BUFFER, geo.flatBytes, geo.flatCount * 4);
-			if (frame <= 2) SLog.log('flatUpload后 err=' + gl.getError() + ' bytes=' + gl.getBufferParameter(GL.ARRAY_BUFFER, gl.BUFFER_SIZE));
-		}
+		gl.bindBuffer(GL.ARRAY_BUFFER, null);
 		gl.enableVertexAttribArray(fAPos);
-		gl.vertexAttribPointer(fAPos, 2, GL.FLOAT, false, 24, 0);
+		gl.vertexAttribPointer(fAPos, 2, GL.FLOAT, false, 8, geo.cPosBytes);
 		gl.enableVertexAttribArray(fAColor);
-		gl.vertexAttribPointer(fAColor, 4, GL.FLOAT, false, 24, 8);
+		gl.vertexAttribPointer(fAColor, 4, GL.FLOAT, false, 16, geo.cColBytes);
 
-		var flatVerts = Std.int(geo.flatCount / 6); // float 数 → 顶点数（核心修复）
+		var flatVerts = Std.int(geo.flatCount / 6); // float 数 → 顶点数
 		gl.uniform2f(fUScale, jelly, jelly);
 		gl.uniform2f(fUCenter, cx, cy);
 		if (flatVerts > edgeCount) gl.drawArrays(GL.TRIANGLES, edgeCount, flatVerts - edgeCount);
@@ -342,7 +335,7 @@ class GLRenderer {
 		if (edgeCount <= flatVerts) gl.drawArrays(GL.TRIANGLES, 0, edgeCount);
 		if (frame <= 2) SLog.log('edge后 err=' + gl.getError());
 
-		// Pass2 文字（顶层）
+		// Pass2 文字（顶层，diag10 客户端数组）
 		if (frame <= 1) SLog.log('draw#' + frame + ': 帧完成');
 		if (textCount > 0 && font.textureId != null) {
 			gl.useProgram(texProg);
@@ -350,13 +343,13 @@ class GLRenderer {
 			gl.uniform1i(tUTex, 0);
 			gl.activeTexture(GL.TEXTURE0);
 			gl.bindTexture(GL.TEXTURE_2D, font.textureId);
-			gl.bindBuffer(GL.ARRAY_BUFFER, vboTex);
+			gl.bindBuffer(GL.ARRAY_BUFFER, null);
 			gl.enableVertexAttribArray(tAPos);
-			gl.vertexAttribPointer(tAPos, 2, GL.FLOAT, false, 32, 0);
+			gl.vertexAttribPointer(tAPos, 2, GL.FLOAT, false, 8, geo.cTPosBytes);
 			gl.enableVertexAttribArray(tAUV);
-			gl.vertexAttribPointer(tAUV, 2, GL.FLOAT, false, 32, 8);
+			gl.vertexAttribPointer(tAUV, 2, GL.FLOAT, false, 8, geo.cTUVBytes);
 			gl.enableVertexAttribArray(tAColor);
-			gl.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 32, 16);
+			gl.vertexAttribPointer(tAColor, 4, GL.FLOAT, false, 16, geo.cTColBytes);
 			gl.drawArrays(GL.TRIANGLES, textStart, textCount);
 			if (frame <= 2) SLog.log('text后 err=' + gl.getError());
 		}

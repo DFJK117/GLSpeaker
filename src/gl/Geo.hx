@@ -104,6 +104,39 @@ class Geo {
 		for (i in 0...texCount) texBytes.setFloat(i * 4, tex[i]);
 	}
 
+	// ———— 客户端数组拆分（diag10：绕开 VBO 通道，attribPointer 直传内存）—————
+	public var cPosBytes:haxe.io.Bytes;   // flat 位置 2f/顶点
+	public var cColBytes:haxe.io.Bytes;   // flat 颜色 4f/顶点
+	public var cTPosBytes:haxe.io.Bytes;  // tex 位置 2f/顶点
+	public var cTUVBytes:haxe.io.Bytes;   // tex UV 2f/顶点
+	public var cTColBytes:haxe.io.Bytes;  // tex 颜色 4f/顶点
+
+	public function syncClientBytes():Void {
+		var v = Std.int(flatCount / 6);
+		if (cPosBytes == null || cPosBytes.length < v * 8) {
+			cPosBytes = haxe.io.Bytes.alloc(Std.int(flat.length / 6) * 8);
+			cColBytes = haxe.io.Bytes.alloc(Std.int(flat.length / 6) * 16);
+		}
+		for (i in 0...v) {
+			cPosBytes.setFloat(i * 8, flat[i * 6]);
+			cPosBytes.setFloat(i * 8 + 4, flat[i * 6 + 1]);
+			for (k in 0...4) cColBytes.setFloat(i * 16 + k * 4, flat[i * 6 + 2 + k]);
+		}
+		var vt = Std.int(texCount / 8);
+		if (cTPosBytes == null || cTPosBytes.length < vt * 8) {
+			cTPosBytes = haxe.io.Bytes.alloc(Std.int(tex.length / 8) * 8);
+			cTUVBytes = haxe.io.Bytes.alloc(Std.int(tex.length / 8) * 8);
+			cTColBytes = haxe.io.Bytes.alloc(Std.int(tex.length / 8) * 16);
+		}
+		for (i in 0...vt) {
+			cTPosBytes.setFloat(i * 8, tex[i * 8]);
+			cTPosBytes.setFloat(i * 8 + 4, tex[i * 8 + 1]);
+			cTUVBytes.setFloat(i * 8, tex[i * 8 + 2]);
+			cTUVBytes.setFloat(i * 8 + 4, tex[i * 8 + 3]);
+			for (k in 0...4) cTColBytes.setFloat(i * 16 + k * 4, tex[i * 8 + 4 + k]);
+		}
+	}
+
 	// ———————— textured（文字）———————
 	public inline function tv(x:Float, y:Float, u:Float, v:Float, r:Float, g:Float, b:Float, a:Float):Void {
 		var o = texCount;
