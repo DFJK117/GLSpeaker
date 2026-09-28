@@ -3,31 +3,44 @@ package gl;
 import lime.graphics.opengl.GL;
 import lime.graphics.opengl.GLProgram;
 
+#if cpp
+import cpp.CFFI;
+#end
+
 /**
  * GL 工具。函数一律走"实例上下文"（onRender 传入的 gl），
  * 常量才允许用静态 GL（常量不需要上下文）。
  *
- * diag11b 关键修复：lime 7.9 的 DataPointer.fromBytes（cpp 目标）走 hxcpp
+ * diag11d 关键修复：lime 7.9 的 DataPointer.fromBytes（cpp 目标）走 hxcpp
  * Pointer.arrayElem(bytes.b, 0) —— 对 Array<UInt8> 的 operator[] 取址，
  * 拿到的是栈上临时值地址（垃圾指针）。glBufferData/vertexAttribPointer/
  * texImage2D 传 Haxe 层 Bytes 全部变成传垃圾 → 场景绘制全哑、纹理全坏。
- * 这里改用 lime_bytes_get_data_pointer（C++ 侧直接返回 Bytes 底层连续
- * buffer 指针，lime 内部渲染自用的正确路径）拿指针。
- * DataPointer 的底层类型就是 Float（cpp 目标），Float 直接可当 DataPointer 传。
+ * 这里改用 CFFI.load 加载 lime.ndll 的 lime_bytes_get_data_pointer
+ * （C++ 侧直接返回 Bytes 底层连续 buffer 指针，lime 官方 neko/cppia
+ * 分支的同款加载方式）。DataPointer 底层类型就是 Float（cpp 目标），
+ * Float 直接可当 DataPointer 传。
  */
-#if cpp
-@:cffi extern class LimeCFFI {
-	@:cffi static function lime_bytes_get_data_pointer(data:Dynamic):Float;
-}
-#end
-
 class GLUtil {
 
 	#if cpp
+	private static var _cffiLoaded:Bool = false;
+	private static var _getPtr:Dynamic = null;
+
 	/** haxe.io.Bytes → 底层连续内存指针（Float 形式；DataPointer 底层类型即 Float） */
 	public static inline function bytesPointer(bytes:haxe.io.Bytes):Float {
 		if (bytes == null) return 0;
-		return LimeCFFI.lime_bytes_get_data_pointer(bytes);
+		if (!_cffiLoaded) {
+			_cffiLoaded = true;
+			try {
+				_getPtr = CFFI.load("lime", "lime_bytes_get_data_pointer", 1);
+				SLog.log('CFFI.load lime_bytes_get_data_pointer OK');
+			} catch (e:Dynamic) {
+				SLog.log('CFFI.load 失败: ' + e);
+				_getPtr = null;
+			}
+		}
+		if (_getPtr == null) return 0;
+		return untyped _getPtr(bytes);
 	}
 	#else
 	public static inline function bytesPointer(bytes:haxe.io.Bytes):Float {
